@@ -1,0 +1,29 @@
+items = [
+    {"weight": 3, "profit": 10},
+    {"weight": 5, "profit": 20},
+    {"weight": 5, "profit": 21},
+    {"weight": 8, "profit": 30},
+    {"weight": 4, "profit": 16}
+]
+
+for item in items:
+    item["ratio"] = item["profit"] / item["weight"]
+
+items.sort(key=lambda x: x["ratio"], reverse=True)
+
+capacity = 20
+total_profit = 0
+selected_items = []
+
+for item in items:
+    if capacity >= item["weight"]:
+        capacity -= item["weight"]
+        total_profit += item["profit"]
+        selected_items.append(item)
+    else: 
+        total_profit += item["profit"] * (capacity / item["weight"])
+        selected_items.append({"weight": capacity, "profit": item["profit"] * (capacity / item["weight"])})
+        break
+
+print(f"Selected Items: {selected_items}")
+print(f"Total Profit: {total_profit:.2f}")

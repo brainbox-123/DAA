@@ -1,0 +1,98 @@
+##0/1 kanpsack
+#DP
+def knapsack_dp(weights, profits, capacity):
+    n = len(weights)
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        for w in range(1, capacity + 1):
+            if weights[i - 1] <= w:
+                dp[i][w] = max(profits[i - 1] + dp[i - 1][w - weights[i - 1]], dp[i - 1][w])
+            else:
+                dp[i][w] = dp[i - 1][w]
+
+    return dp[n][capacity]
+
+# Example Input
+weights = [1, 2, 3, 8]
+profits = [20, 5, 10, 40]
+capacity = 10
+print("DP Solution:", knapsack_dp(weights, profits, capacity))
+
+
+#Backtracking
+def knapsack_bt(weights, profits, capacity, n):
+    if n == 0 or capacity == 0:
+        return 0
+    if weights[n - 1] > capacity:
+        return knapsack_bt(weights, profits, capacity, n - 1)
+    else:
+        return max(
+            profits[n - 1] + knapsack_bt(weights, profits, capacity - weights[n - 1], n - 1),
+            knapsack_bt(weights, profits, capacity, n - 1)
+        )
+
+# Example Input
+print("Backtracking Solution:", knapsack_bt(weights, profits, capacity, len(weights)))
+
+#branch and bound
+import heapq
+
+class Node:
+    def __init__(self, level, profit, weight, bound):
+        self.level = level
+        self.profit = profit
+        self.weight = weight
+        self.bound = bound
+
+    def __lt__(self, other):
+        return self.bound > other.bound  # Max heap based on bound
+
+def knapsack_bb(weights, profits, capacity):
+    n = len(weights)
+
+    def bound(u):
+        if u.weight >= capacity:
+            return 0
+        result = u.profit
+        j = u.level + 1
+        total_weight = u.weight
+        while j < n and total_weight + weights[j] <= capacity:
+            total_weight += weights[j]
+            result += profits[j]
+            j += 1
+        if j < n:
+            result += (capacity - total_weight) * (profits[j] / weights[j])
+        return result
+
+    pq = []
+    u = Node(-1, 0, 0, 0)
+    u.bound = bound(u)
+    heapq.heappush(pq, u)
+
+    max_profit = 0
+    while pq:
+        u = heapq.heappop(pq)
+        if u.bound > max_profit and u.level < n - 1:
+            v = Node(u.level + 1, u.profit, u.weight, 0)
+
+            # Include the current item
+            v.weight = u.weight + weights[v.level]
+            v.profit = u.profit + profits[v.level]
+            if v.weight <= capacity and v.profit > max_profit:
+                max_profit = v.profit
+            v.bound = bound(v)
+            if v.bound > max_profit:
+                heapq.heappush(pq, v)
+
+            # Exclude the current item
+            v.weight = u.weight
+            v.profit = u.profit
+            v.bound = bound(v)
+            if v.bound > max_profit:
+                heapq.heappush(pq, v)
+
+    return max_profit
+
+# Example Input
+print("Branch and Bound Solution:", knapsack_bb(weights, profits, capacity))

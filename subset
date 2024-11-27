@@ -1,0 +1,16 @@
+def subset_sum(S, d, partial=[]):
+    if sum(partial) == d:
+        print("Solution:", partial)
+        return True
+    if sum(partial) > d or not S:
+        return False
+    return subset_sum(S[1:], d, partial + [S[0]]) or subset_sum(S[1:], d, partial)
+
+# Example Input
+S = [1, 2, 5, 6, 8]
+d_values = [9, 7]
+
+for d in d_values:
+    print(f"Checking for d = {d}:")
+    if not subset_sum(S, d):
+        print("No solution exists.")
