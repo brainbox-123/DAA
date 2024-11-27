@@ -1,0 +1,333 @@
+##binary
+
+import random
+data = random.sample(range(1, 10001), 5000)
+data.sort()
+def binary_search(arr, key, low, high):
+    if low > high:
+        return -1 
+    mid = (low + high) // 2
+    if arr[mid] == key:
+        return mid 
+    elif arr[mid] < key:
+        return binary_search(arr, key, mid + 1, high)
+    else:
+        return binary_search(arr, key, low, mid - 1)
+key = int(input("Enter the element to search: "))
+result = binary_search(data, key, 0, len(data) - 1)
+if result != -1:
+    print(f"Element {key} found at index {result}.")
+else:
+    print("Element not found.")
+
+
+##merge and quick
+import random
+import time
+
+# Merge Sort Implementation
+def merge_sort(arr):
+    if len(arr) > 1:
+        mid = len(arr) // 2
+        left = arr[:mid]
+        right = arr[mid:]
+
+        merge_sort(left)
+        merge_sort(right)
+
+        i = j = k = 0
+        while i < len(left) and j < len(right):
+            if left[i] < right[j]:
+                arr[k] = left[i]
+                i += 1
+            else:
+                arr[k] = right[j]
+                j += 1
+            k += 1
+
+        while i < len(left):
+            arr[k] = left[i]
+            i += 1
+            k += 1
+
+        while j < len(right):
+            arr[k] = right[j]
+            j += 1
+            k += 1
+
+# Quick Sort Implementation
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)
+
+# Measure execution time for both algorithms
+def measure_time(sort_func, arr):
+    start = time.time()
+    sorted_arr = sort_func(arr.copy()) if sort_func == quick_sort else sort_func(arr.copy())
+    end = time.time()
+    return end - start
+
+# Test for different input sizes
+sizes = [1000, 5000, 10000, 20000]
+for size in sizes:
+    test_data = [random.randint(1, 100000) for _ in range(size)]
+    print(f"\nArray Size: {size}")
+    
+    merge_time = measure_time(merge_sort, test_data)
+    print(f"Merge Sort Time: {merge_time:.6f} seconds")
+    
+    quick_time = measure_time(quick_sort, test_data)
+    print(f"Quick Sort Time: {quick_time:.6f} seconds")
+
+
+##knapsack
+items = [
+    {"weight": 3, "profit": 10},
+    {"weight": 5, "profit": 20},
+    {"weight": 5, "profit": 21},
+    {"weight": 8, "profit": 30},
+    {"weight": 4, "profit": 16}
+]
+
+for item in items:
+    item["ratio"] = item["profit"] / item["weight"]
+
+items.sort(key=lambda x: x["ratio"], reverse=True)
+
+capacity = 20
+total_profit = 0
+selected_items = []
+
+for item in items:
+    if capacity >= item["weight"]:
+        capacity -= item["weight"]
+        total_profit += item["profit"]
+        selected_items.append(item)
+    else: 
+        total_profit += item["profit"] * (capacity / item["weight"])
+        selected_items.append({"weight": capacity, "profit": item["profit"] * (capacity / item["weight"])})
+        break
+
+print(f"Selected Items: {selected_items}")
+print(f"Total Profit: {total_profit:.2f}")
+
+##shortest path
+def floyd_warshall(graph):
+    n = len(graph)
+    dist = [[graph[i][j] for j in range(n)] for i in range(n)]
+
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+
+    return dist
+
+graph = [
+    [0, 3, float('inf'), 7],
+    [8, 0, 2, float('inf')],
+    [5, float('inf'), 0, 1],
+    [2, float('inf'), float('inf'), 0]
+]
+shortest_paths = floyd_warshall(graph)
+
+print("All-Pairs Shortest Paths:")
+for row in shortest_paths:
+    print(row)
+
+
+##0/1 kanpsack
+#DP
+def knapsack_dp(weights, profits, capacity):
+    n = len(weights)
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        for w in range(1, capacity + 1):
+            if weights[i - 1] <= w:
+                dp[i][w] = max(profits[i - 1] + dp[i - 1][w - weights[i - 1]], dp[i - 1][w])
+            else:
+                dp[i][w] = dp[i - 1][w]
+
+    return dp[n][capacity]
+
+# Example Input
+weights = [1, 2, 3, 8]
+profits = [20, 5, 10, 40]
+capacity = 10
+print("DP Solution:", knapsack_dp(weights, profits, capacity))
+
+
+#Backtracking
+def knapsack_bt(weights, profits, capacity, n):
+    if n == 0 or capacity == 0:
+        return 0
+    if weights[n - 1] > capacity:
+        return knapsack_bt(weights, profits, capacity, n - 1)
+    else:
+        return max(
+            profits[n - 1] + knapsack_bt(weights, profits, capacity - weights[n - 1], n - 1),
+            knapsack_bt(weights, profits, capacity, n - 1)
+        )
+
+# Example Input
+print("Backtracking Solution:", knapsack_bt(weights, profits, capacity, len(weights)))
+
+#branch and bound
+import heapq
+
+class Node:
+    def __init__(self, level, profit, weight, bound):
+        self.level = level
+        self.profit = profit
+        self.weight = weight
+        self.bound = bound
+
+    def __lt__(self, other):
+        return self.bound > other.bound  # Max heap based on bound
+
+def knapsack_bb(weights, profits, capacity):
+    n = len(weights)
+
+    def bound(u):
+        if u.weight >= capacity:
+            return 0
+        result = u.profit
+        j = u.level + 1
+        total_weight = u.weight
+        while j < n and total_weight + weights[j] <= capacity:
+            total_weight += weights[j]
+            result += profits[j]
+            j += 1
+        if j < n:
+            result += (capacity - total_weight) * (profits[j] / weights[j])
+        return result
+
+    pq = []
+    u = Node(-1, 0, 0, 0)
+    u.bound = bound(u)
+    heapq.heappush(pq, u)
+
+    max_profit = 0
+    while pq:
+        u = heapq.heappop(pq)
+        if u.bound > max_profit and u.level < n - 1:
+            v = Node(u.level + 1, u.profit, u.weight, 0)
+
+            # Include the current item
+            v.weight = u.weight + weights[v.level]
+            v.profit = u.profit + profits[v.level]
+            if v.weight <= capacity and v.profit > max_profit:
+                max_profit = v.profit
+            v.bound = bound(v)
+            if v.bound > max_profit:
+                heapq.heappush(pq, v)
+
+            # Exclude the current item
+            v.weight = u.weight
+            v.profit = u.profit
+            v.bound = bound(v)
+            if v.bound > max_profit:
+                heapq.heappush(pq, v)
+
+    return max_profit
+
+# Example Input
+print("Branch and Bound Solution:", knapsack_bb(weights, profits, capacity))
+
+
+##n queen
+def print_solution(board):
+    for row in board:
+        print(" ".join("Q" if col else "." for col in row))
+    print()
+
+def is_safe(board, row, col, n):
+    # Check column and diagonals
+    for i in range(row):
+        if board[i][col] or (col - row + i >= 0 and board[i][col - row + i]) or (col + row - i < n and board[i][col + row - i]):
+            return False
+    return True
+
+def solve_n_queens(board, row, n):
+    if row == n:
+        print_solution(board)
+        return True  # Found at least one solution
+
+    res = False
+    for col in range(n):
+        if is_safe(board, row, col, n):
+            board[row][col] = 1
+            res = solve_n_queens(board, row + 1, n) or res
+            board[row][col] = 0  # Backtrack
+    return res
+
+def n_queens(n):
+    board = [[0] * n for _ in range(n)]
+    if not solve_n_queens(board, 0, n):
+        print("No solution exists.")
+
+# Example Input
+n = int(input("Enter the value of N: "))
+n_queens(n)
+
+##7
+def subset_sum(S, d, partial=[]):
+    if sum(partial) == d:
+        print("Solution:", partial)
+        return True
+    if sum(partial) > d or not S:
+        return False
+    return subset_sum(S[1:], d, partial + [S[0]]) or subset_sum(S[1:], d, partial)
+
+# Example Input
+S = [1, 2, 5, 6, 8]
+d_values = [9, 7]
+
+for d in d_values:
+    print(f"Checking for d = {d}:")
+    if not subset_sum(S, d):
+        print("No solution exists.")
+
+
+##8
+#1
+import itertools
+
+def tsp_dp(dist):
+    n = len(dist)
+    dp = [[float('inf')] * n for _ in range(1 << n)]
+    dp[1][0] = 0
+    for mask in range(1, 1 << n):
+        for u in range(n):
+            if (mask >> u) & 1:
+                for v in range(n):
+                    if u != v and (mask >> v) & 1:
+                        dp[mask][u] = min(dp[mask][u], dp[mask ^ (1 << u)][v] + dist[v][u])
+    return min(dp[(1 << n) - 1][i] + dist[i][0] for i in range(1, n))
+
+# Example Input (distance matrix)
+dist = [
+    [0, 10, 15, 20],
+    [10, 0, 35, 25],
+    [15, 35, 0, 30],
+    [20, 25, 30, 0]
+]
+print("Optimal TSP Solution (DP):", tsp_dp(dist))
+
+#2
+def tsp_bruteforce(dist):
+    n = len(dist)
+    min_path = float('inf')
+    for perm in itertools.permutations(range(1, n)):
+        cost = dist[0][perm[0]] + sum(dist[perm[i]][perm[i+1]] for i in range(len(perm)-1)) + dist[perm[-1]][0]
+        min_path = min(min_path, cost)
+    return min_path
+
+print("Optimal TSP Solution (Brute Force):", tsp_bruteforce(dist))
+
